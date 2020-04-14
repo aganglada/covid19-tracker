@@ -11,9 +11,12 @@ import {
 } from 'recharts'
 import './App.css'
 
-type Data = {
-  [date: string]: Omit<DataItem, 'date'>[]
+type Country = {
+  name: string
+  alpha3Code: string
 }
+
+type Data = DataItem[]
 
 type DataItem = {
   date: string
@@ -31,7 +34,8 @@ function formatDate(date: Date): string {
 }
 
 function App() {
-  const [data, setData] = React.useState<Data>({})
+  const [data, setData] = React.useState<Data>([])
+  const [countries, setCountries] = React.useState<Country[]>([])
   const [country, setCountry] = React.useState<string>('GBR')
 
   const date = new Date()
@@ -41,14 +45,22 @@ function App() {
   const [startDate, setStartDate] = React.useState<string>(oneMonthAgo)
 
   React.useEffect(() => {
+    fetch('https://restcountries.eu/rest/v2/all')
+      .then((res) => res.json())
+      .then((json) => {
+        setCountries(json)
+      })
+  }, [])
+
+  React.useEffect(() => {
     fetch(
-      `https://covidapi.info/api/v1/global/timeseries/${startDate}/${today}`
+      `https://covidapi.info/api/v1/country/${country}/timeseries/${startDate}/${today}`
     )
       .then((res) => res.json())
       .then((data) => {
         setData(data.result)
       })
-  }, [startDate, today])
+  }, [startDate, today, country])
 
   return (
     <div className="App">
@@ -69,10 +81,10 @@ function App() {
           name="country"
           id="country"
         >
-          {Object.keys(data).map((country) => {
+          {countries.map((country) => {
             return (
-              <option value={country} key={country}>
-                {country}
+              <option value={country.alpha3Code} key={country.alpha3Code}>
+                {country.name}
               </option>
             )
           })}
@@ -93,7 +105,7 @@ function App() {
       </fieldset>
       <div className="App__graph">
         <ResponsiveContainer>
-          <LineChart data={data[country]}>
+          <LineChart data={data}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="date" />
             <YAxis />
@@ -102,11 +114,22 @@ function App() {
             <Line
               type="monotone"
               dataKey="confirmed"
-              stroke="red"
+              stroke="#ff3636"
               activeDot={{ r: 8 }}
+              strokeWidth={2}
             />
-            <Line type="monotone" dataKey="deaths" stroke="black" />
-            <Line type="monotone" dataKey="recovered" stroke="green" />
+            <Line
+              type="monotone"
+              dataKey="deaths"
+              stroke="#525252"
+              strokeWidth={2}
+            />
+            <Line
+              type="monotone"
+              dataKey="recovered"
+              stroke="#1eb343"
+              strokeWidth={2}
+            />
           </LineChart>
         </ResponsiveContainer>
       </div>
